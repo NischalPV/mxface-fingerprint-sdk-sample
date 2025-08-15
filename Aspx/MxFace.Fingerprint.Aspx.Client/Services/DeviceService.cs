@@ -6,12 +6,13 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+using System.Configuration;
 
 namespace MxFace.Fingerprint.Aspx.Client.Services
 {
     public class DeviceService
     {
-        private readonly string _baseUrl = "https://localhost:8034/mfscan/";
+        private readonly string _baseUrl = ConfigurationManager.AppSettings["ScanBaseUrl"].TrimEnd('/') + "/";
 
         public async Task<int> GetConnectedDevices(List<string> devices)
         {

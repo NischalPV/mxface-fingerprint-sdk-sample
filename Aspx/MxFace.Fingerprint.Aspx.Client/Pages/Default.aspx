@@ -1,13 +1,13 @@
-<%@ Page Language="C#" AutoEventWireup="true" CodeFile="Default.aspx.cs" Inherits="Default" %>
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Default.aspx.cs" Inherits="MxFace.Fingerprint.Aspx.Client.Pages.Default" %>
 <!DOCTYPE html>
 <html>
 <head>
     <title>MxFace Fingerprint ASPX Client</title>
-    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
-    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../Content/css/app.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="Scripts/MFScan.js"></script>
+    <script src="../Scripts/MFScan.js"></script>
     <script type="text/javascript">
         var firstDevice = '';
         $(document).ready(function () {

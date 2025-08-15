@@ -5,12 +5,13 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
+using System.Configuration;
 
 namespace MxFace.Fingerprint.Aspx.Client.Services
 {
     public class FingerprintCapturingService
     {
-        private readonly string _baseUrl = "https://localhost:8034/mfscan";
+        private readonly string _baseUrl = ConfigurationManager.AppSettings["ScanBaseUrl"];
 
         public async Task<CaptureViewModel> StartCaptureAsync(int timeout = 10, int minimumQuality = 60)
         {

@@ -9,9 +9,9 @@ This sample demonstrates a standalone ASP.NET Web Forms application targeting **
 - Simple WebForms UI implemented in `Default.aspx`.
 
 ## Implementation Notes
-- Device discovery and capture are performed with `fetch` requests to the local device service (`https://localhost:8034/mfscan`).
+- Device discovery and capture are performed with `fetch` requests to the local device service (`ScanBaseUrl` in `Web.config`, default `https://localhost:8034/mfscan`).
 - Captured bitmap data is stored in a hidden field so server-side postbacks can send it to the API.
-- `App_Code/Services` contains `FingerprintApiService` for calling the REST API (`https://localhost:7103/`).
+- `App_Code/Services` contains `FingerprintApiService` for calling the REST API (configured via `ApiBaseUrl`/`FingerprintApiPath` in `Web.config`).
 - Models required by the services are provided under `App_Code/Models`.
 
 ## Running the Sample
