@@ -1,9 +1,8 @@
 ﻿@page "/"
-@using MxFace.Fingerprint.API.Client.Interfaces
 @using MxFace.Fingerprint.API.Client.Services
 @using MxFace.Fingerprint.Shared.Models
-@inject IDevice deviceService
-@inject ICapture capturingServices
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
 @inject FingerprintApiService searchServices
 @rendermode InteractiveServer
 
@@ -251,13 +250,13 @@ else
 
     Device? Device;
     CaptureViewModel? FingerprintData;
-    EnrollRequest? enrollRequest;
+    EnrollRequest enrollRequest = new();
     EnrollmentResponse? enrollResponse;
-    SearchRequest? searchRequest;
+    SearchRequest searchRequest = new();
     List<SearchResponse>? searchResponse;
     string? FingerprintBitMap;
     MatchResponse? matchResponse;
-    MatchRequest? matchRequest;
+    MatchRequest matchRequest = new();
     private int captureCount = 0;
     private Dictionary<string, string> captureFingerprints = new Dictionary<string, string>();
     public string? externalId;
@@ -265,31 +264,118 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var DeviceNames = new List<string>();
+        try
+        {
+            // Get connected devices using JavaScript
+            var deviceListResult = await JSRuntime.InvokeAsync<JSResponse>("GetConnectedDeviceList");
+            
+            if (deviceListResult?.httpStatus == true && deviceListResult.data != null)
+            {
+                var deviceListJson = deviceListResult.data.ToString();
+                
+                if (!string.IsNullOrEmpty(deviceListJson))
+                {
+                    // Extract first device name
+                    var firstDeviceName = ExtractFirstDeviceName(deviceListJson);
+                    
+                    if (!string.IsNullOrEmpty(firstDeviceName))
+                    {
+                        // Get device info using JavaScript
+                        var deviceInfoResult = await JSRuntime.InvokeAsync<JSResponse>("GetMorFinAuthInfo", firstDeviceName, "");
+                        
+                        if (deviceInfoResult?.httpStatus == true && deviceInfoResult.data != null)
+                        {
+                            var deviceInfoJson = deviceInfoResult.data.ToString();
+                            if (!string.IsNullOrEmpty(deviceInfoJson))
+                            {
+                                Device = System.Text.Json.JsonSerializer.Deserialize<Device>(deviceInfoJson);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error - could set Device to null or show error message
+            Console.WriteLine($"Error initializing device: {ex.Message}");
+        }
+    }
 
-        await deviceService.GetConnectedDevices(DeviceNames);
+    // Helper class to match the JavaScript response structure
+    public class JSResponse
+    {
+        public bool httpStatus { get; set; }
+        public object? data { get; set; }
+        public string? err { get; set; }
+    }
 
-        Device = await deviceService.GetDeviceInfoAsync(DeviceNames[0]);
-
-        enrollRequest ??= new EnrollRequest();
-        searchRequest ??= new SearchRequest();
-        matchRequest ??= new MatchRequest();
+    private string ExtractFirstDeviceName(string deviceListJson)
+    {
+        try
+        {
+            // Parse the JSON response to extract device name
+            // This will depend on the actual structure returned by GetConnectedDeviceList
+            using var document = System.Text.Json.JsonDocument.Parse(deviceListJson);
+            
+            // Adjust this based on the actual JSON structure from MFScan.js
+            if (document.RootElement.TryGetProperty("data", out var dataElement))
+            {
+                if (dataElement.ValueKind == System.Text.Json.JsonValueKind.Array && dataElement.GetArrayLength() > 0)
+                {
+                    var firstDevice = dataElement[0].GetString();
+                    // Extract device name using regex similar to the server-side implementation
+                    var match = System.Text.RegularExpressions.Regex.Match(firstDevice ?? "", "Connected Device :(.*?)");
+                    return match.Groups[1].Value.Trim();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error extracting device name: {ex.Message}");
+        }
+        
+        return string.Empty;
     }
 
     private async Task CaptureFingerPrintAsync(string captureKey)
     {
         if (captureFingerprints.ContainsKey(captureKey))
         {
-            captureFingerprints[captureKey] = null;
+            captureFingerprints[captureKey] = string.Empty;
         }
 
         StateHasChanged();
 
-        FingerprintData = await capturingServices.StartCaptureAsync(10, 60);
-
-        if (enrollRequest is not null)
+        try
         {
-            captureFingerprints[captureKey] = FingerprintData.BitmapData;
+            // Use JavaScript capture function instead of server-side service
+            var captureResult = await JSRuntime.InvokeAsync<JSResponse>("CaptureFingerprint", 10, 60);
+            
+            if (captureResult?.httpStatus == true && captureResult.data != null)
+            {
+                var captureJson = captureResult.data.ToString();
+                if (!string.IsNullOrEmpty(captureJson))
+                {
+                    FingerprintData = System.Text.Json.JsonSerializer.Deserialize<CaptureViewModel>(captureJson);
+                }
+            }
+            else if (captureResult?.httpStatus == false && !string.IsNullOrEmpty(captureResult.err))
+            {
+                // Handle capture error
+                Console.WriteLine($"Capture error: {captureResult.err}");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during capture: {ex.Message}");
+            return;
+        }
+
+        if (FingerprintData is not null)
+        {
+            captureFingerprints[captureKey] = FingerprintData.BitmapData ?? string.Empty;
 
             if (captureKey == "capture1")
             {
@@ -299,8 +385,12 @@ else
             {
                 matchRequest.TargetTemplate = FingerprintData._data;
             }
-            enrollRequest.TemplateData = FingerprintData._data;
-            searchRequest.TemplateData = FingerprintData._data;
+            
+            if (FingerprintData._data is not null)
+            {
+                enrollRequest.TemplateData = FingerprintData._data;
+                searchRequest.TemplateData = FingerprintData._data;
+            }
         }
         StateHasChanged();
 
@@ -317,22 +407,24 @@ else
 
     private async Task EnrollFingerPrintAsync()
     {
-        enrollResponse = await searchServices.EnrollAsync(FingerprintData._data, enrollRequest.PersonId, enrollRequest.Group);
-
-        if (searchRequest is not null)
+        if (FingerprintData?._data is not null)
         {
+            enrollResponse = await searchServices.EnrollAsync(FingerprintData._data, enrollRequest.PersonId, enrollRequest.Group);
             searchRequest.Group = enrollRequest.Group;
         }
     }
 
     private async Task SearchFingerPrintAsync()
     {
-        searchResponse = await searchServices.SearchAsync(FingerprintData._data, searchRequest.Group);
+        if (FingerprintData?._data is not null)
+        {
+            searchResponse = await searchServices.SearchAsync(FingerprintData._data, searchRequest.Group);
+        }
     }
 
     private async Task MatchFingerPrintAsync()
     {
-        if (enrollRequest?.TemplateData != null && FingerprintData?.BitmapData != null)
+        if (matchRequest.SourceTemplate != null && matchRequest.TargetTemplate != null)
         {
             matchResponse = await searchServices.VerifyAsync(matchRequest.SourceTemplate, matchRequest.TargetTemplate);
         }

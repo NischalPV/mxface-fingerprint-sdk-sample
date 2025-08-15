@@ -1,6 +1,6 @@
 using MxFace.Fingerprint.API.GRPC.Server.Services;
-using MxFace.SDK.Fingerprint;
-using MxFace.SDK.Fingerprint.Extensions.Configuration;
+//using MxFace.SDK.Fingerprint;
+//using MxFace.SDK.Fingerprint.Extensions.Configuration;
 
 namespace MxFace.Fingerprint.API.GRPC.Server
 {
@@ -13,10 +13,10 @@ namespace MxFace.Fingerprint.API.GRPC.Server
             // Add services to the container.
             builder.Services.AddGrpc();
 
-            builder.UseMxFaceFingerprintSDK(configure: config =>
-            {
-                config.Settings = new BiometricConfigurationSettings();
-            });
+            //builder.UseMxFaceFingerprintSDK(configure: config =>
+            //{
+            //    config.Settings = new BiometricConfigurationSettings();
+            //});
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
