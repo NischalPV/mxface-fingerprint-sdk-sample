@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net48" Version="1.0.3" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="App_Code\\**\\*.cs" />
+    <Content Include="**\\*.aspx" />
+    <Content Include="Web.config" />
+    <Content Include="Scripts\\**\\*.*" />
+    <Content Include="bootstrap\\**\\*.*" />
+    <Content Include="app.css" />
+  </ItemGroup>
+</Project>
